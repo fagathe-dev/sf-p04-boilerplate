@@ -5,7 +5,7 @@ twig:
     globals:
         APP_LOGO: 'images/logo.webp'
         APP_FAVICON: 'images/favicon.ico'
-        APP_NAME: '%env(COMPANY_NAME)%'
+        APP_NAME: '%env(APP_NAME)%'
 when@test:
     twig:
         strict_variables: true

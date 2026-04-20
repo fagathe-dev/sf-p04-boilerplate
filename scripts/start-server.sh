@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-api_dir='/Users/fagathe/workspace/sf-p02-todo-app'
+app_dir='/Users/fagathe/workspace/perso/sf-p04-boilerplate'
 app_host='dev.sf-p04-boilerplate.fagathe-dev.fr'
 port='9600'
 db_driver='mysql'
@@ -9,7 +9,7 @@ db_driver='mysql'
 
 echo "lance le service ${db_driver}"
 brew services start $db_driver
-cd $api_dir
+cd $app_dir
 echo 'cd api dir'
 echo 'ouvrir le projet sur vscode'
 code .
