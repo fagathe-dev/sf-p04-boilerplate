@@ -8,7 +8,7 @@ const isBuild =
   args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
 
 // Chemins sources (racine) et destination (public)
-const entryPoint = 'assets/scss/main.scss';
+const entryPoint = 'assets/scss/custom.scss';
 const outdir = 'public/css';
 const outfile = 'main.css';
 
