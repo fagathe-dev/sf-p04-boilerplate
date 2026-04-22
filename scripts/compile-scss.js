@@ -2,33 +2,47 @@ const sass = require('sass');
 const fs = require('fs');
 const path = require('path');
 
-// Détection du mode de compilation
 const args = process.argv.slice(2);
 const isBuild =
   args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
+const isWatch = args.includes('--watch'); // Détection du flag watch
 
-// Chemins sources (racine) et destination (public)
-const entryPoint = 'assets/scss/main.scss';
+const entryPoint = 'assets/scss/custom.scss';
 const outdir = 'public/css';
-const outfile = 'main.css';
+const outfile = 'custom.css';
 
-// Création du dossier cible s'il n'existe pas
-if (!fs.existsSync(outdir)) {
-  fs.mkdirSync(outdir, { recursive: true });
+if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
+
+// Fonction de compilation isolée
+function compileSass() {
+  try {
+    const result = sass.compile(entryPoint, {
+      style: isBuild ? 'compressed' : 'expanded',
+    });
+    fs.writeFileSync(path.join(outdir, outfile), result.css);
+    const time = new Date().toLocaleTimeString();
+    console.log(`[${time}] ✅ SCSS compiled to ${outdir}/${outfile}`);
+  } catch (error) {
+    console.error('❌ SCSS compilation failed:', error.message);
+  }
 }
 
-try {
-  // Compilation avec style dynamique
-  const result = sass.compile(entryPoint, {
-    style: isBuild ? 'compressed' : 'expanded',
-  });
+// 1. On lance une première compilation au démarrage
+compileSass();
 
-  // Écriture du fichier
-  fs.writeFileSync(path.join(outdir, outfile), result.css);
-  console.log(
-    `✅ SCSS compiled to ${outdir}/${outfile} (Minified: ${isBuild})`,
-  );
-} catch (error) {
-  console.error('❌ SCSS compilation failed:', error.message);
-  process.exit(1);
+// 2. Si mode watch activé, on écoute le dossier
+if (isWatch) {
+  console.log('👀 Watching SCSS files for changes...');
+  let timeout;
+
+  // Écoute récursive de tout le dossier scss
+  fs.watch('assets/scss', { recursive: true }, (eventType, filename) => {
+    if (filename && filename.endsWith('.scss')) {
+      // Debounce : on annule la précédente compilation si elle date de moins de 100ms
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        compileSass();
+      }, 100);
+    }
+  });
 }

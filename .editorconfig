@@ -20,6 +20,10 @@ trim_trailing_whitespace = false
 [*.html.twig]
 indent_style = space
 indent_size = 2
+# Configuration spécifique pour les fichiers HTML
+[*.html]
+indent_style = space
+indent_size = 2
 
 # Configuration spécifique pour les fichiers TypeScript
 [*.{ts,tsx}]
