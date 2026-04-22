@@ -7,15 +7,15 @@
     "test": "tests"
   },
   "scripts": {
-    "dev:ts": "node scripts/compile-ts.js",
-    "dev:scss": "node scripts/compile-scss.js",
-    "dev": "npm run dev:ts && npm run dev:scss",
-    "compile:ts": "node scripts/compile-ts.js --mode compile",
-    "compile:scss": "node scripts/compile-scss.js --mode compile",
-    "compile": "npm run compile:ts && npm run compile:scss",
     "build:ts": "node scripts/compile-ts.js --mode build",
     "build:scss": "node scripts/compile-scss.js --mode build",
-    "build": "npm run build:ts && npm run build:scss"
+    "build": "npm run build:ts && npm run build:scss",
+    "compile:ts": "node scripts/compile-ts.js",
+    "compile:scss": "node scripts/compile-scss.js",
+    "compile": "npm run compile:ts && npm run compile:scss",
+    "dev:ts": "node scripts/compile-ts.js --watch",
+    "dev:scss": "node scripts/compile-scss.js --watch",
+    "dev": "concurrently \"npm run dev:ts\" \"npm run dev:scss\""
   },
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "esbuild": "^0.28.0",
     "sass": "^1.99.0",
     "typescript": "^6.0.3"

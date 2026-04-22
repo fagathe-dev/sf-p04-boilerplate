@@ -1,42 +1,55 @@
-const esbuild = require('esbuild');
+const sass = require('sass');
 const fs = require('fs');
 const path = require('path');
 
-// Détection du mode de compilation
 const args = process.argv.slice(2);
-const isBuild =
-  args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
+const isBuild = args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
+const isWatch = args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'dev';
 
-// Chemins sources (racine) et destination (public)
-const entryPoint = 'assets/ts/main.ts';
-const outdir = 'public/js';
-const outfile = 'main.js';
+const entryPoint = 'assets/scss/custom.scss';
+const outdir = 'public/css';
+const outfile = 'custom.css';
 
-// Création du dossier cible s'il n'existe pas
-if (!fs.existsSync(outdir)) {
-  fs.mkdirSync(outdir, { recursive: true });
+// Fonction de compilation isolée
+function compileSass() {
+  try {
+    // 1. Sécurité : on s'assure que le dossier existe À CHAQUE compilation
+    if (!fs.existsSync(outdir)) {
+      fs.mkdirSync(outdir, { recursive: true });
+    }
+
+    // 2. Compilation
+    const result = sass.compile(entryPoint, { 
+      style: isBuild ? 'compressed' : 'expanded' 
+    });
+
+    // 3. Écriture
+    fs.writeFileSync(path.join(outdir, outfile), result.css);
+    
+    const time = new Date().toLocaleTimeString();
+    console.log(`[${time}] ✅ SCSS compiled to ${outdir}/${outfile}`);
+    
+  } catch (error) {
+    // 4. On avertit sans crasher le watcher (pratique pour les erreurs de syntaxe SCSS)
+    const time = new Date().toLocaleTimeString();
+    console.warn(`[${time}] ⚠️ SCSS compilation issue: ${error.message}`);
+  }
 }
 
-// Configuration ESBuild
-const buildOptions = {
-  entryPoints: [entryPoint],
-  bundle: true,
-  minify: isBuild,
-  sourcemap: !isBuild, // Pratique d'avoir le sourcemap en dev
-  target: 'es2020',
-  format: 'esm',
-  outfile: path.join(outdir, outfile),
-};
+// Premier lancement
+compileSass();
 
-// Lancement de la compilation
-esbuild
-  .build(buildOptions)
-  .then(() => {
-    console.log(
-      `✅ TypeScript compiled to ${outdir}/${outfile} (Minified: ${isBuild})`,
-    );
-  })
-  .catch((error) => {
-    console.error('❌ TypeScript compilation failed:', error);
-    process.exit(1);
+// Mode Watch
+if (isWatch) {
+  console.log('👀 Watching SCSS files for changes...');
+  let timeout;
+  
+  fs.watch('assets/scss', { recursive: true }, (eventType, filename) => {
+    if (filename && filename.endsWith('.scss')) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        compileSass();
+      }, 100);
+    }
   });
+}

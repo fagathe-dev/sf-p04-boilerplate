@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../assets/ts/main.ts"],
+  "sourcesContent": ["console.log('Hello, TypeScript!');\n"],
+  "mappings": ";AAAA,QAAQ,IAAI,oBAAoB;",
+  "names": []
+}

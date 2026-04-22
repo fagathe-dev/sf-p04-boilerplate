@@ -1,0 +1,17 @@
+.layout-wrapper.landing {
+  min-height: 100vh;
+  height: auto;
+}
+
+.landing .navbar .navbar-toggler {
+  border: none;
+  outline: 0;
+}
+.landing .navbar .navbar-toggler i {
+  font-size: 30px;
+}
+.landing .navbar .navbar-toggler:focus {
+  border: none;
+  outline: 0;
+  box-shadow: none;
+}
