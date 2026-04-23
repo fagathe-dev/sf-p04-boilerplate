@@ -1,0 +1,63 @@
+{% extends 'layouts/email.html.twig' %}
+
+{% block content %}
+  {# ── Titre ── #}
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 0 0 10px;" valign="top">
+      {% include 'emails/components/_text.html.twig' with {
+        level: 'h4', content: 'Please verify your email', align: 'center'
+      } only %}
+    </td>
+  </tr>
+
+  {# ── Sous-texte ── #}
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 0 0 10px;" valign="top">
+      {% include 'emails/components/_text.html.twig' with {
+        level: 'p', content: 'Yes, we know — an email to verify an email.', align: 'center'
+      } only %}
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 0 0 26px;" valign="top">
+      {% include 'emails/components/_text.html.twig' with {
+        level: 'p', content: 'Please validate your email address in order to get started using the product.', align: 'center'
+      } only %}
+    </td>
+  </tr>
+
+  {# ── Bouton CTA ── #}
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 0 0 22px;" valign="top">
+      {% include 'emails/components/_button.html.twig' with {
+        url: confirmation_url|default('#'),
+        label: 'Verify Your Email'
+      } only %}
+    </td>
+  </tr>
+
+  {# ── Séparateur ── #}
+  <tr>
+    <td style="font-family: 'Roboto', sans-serif; vertical-align: top;" valign="top">
+      {% include 'emails/components/_divider.html.twig' only %}
+    </td>
+  </tr>
+
+  {# ── Lien alternatif ── #}
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 10px 0 0;" valign="top">
+      {% include 'emails/components/_text.html.twig' with {
+        level: 'p', align: 'center', size: '13px',
+        content: 'Or verify using this link:'
+      } only %}
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="font-family: 'Roboto', sans-serif; vertical-align: top; padding: 6px 0 0;" valign="top">
+      {% include 'emails/components/_link.html.twig' with {
+        url: confirmation_url|default('#'),
+        label: confirmation_url|default('#')
+      } only %}
+    </td>
+  </tr>
+{% endblock %}

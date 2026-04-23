@@ -11,10 +11,11 @@ services:
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
-        # bind:
+        bind:
             # string $projectDir: '%kernel.project_dir%'
             # string $environment: '%kernel.environment%'
-            # string $defaultUri: '%env(DEFAULT_URI)%'
+            string $defaultUri: '%env(DEFAULT_URI)%'
+            string $appName: '%env(APP_NAME)%'
             # string $defaultLocale: 'fr_FR'
         
     # makes classes in src/ available to be used as services
