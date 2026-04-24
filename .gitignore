@@ -6,7 +6,9 @@
 /public/bundles/
 /node_modules/
 /var/
+/logs/
 /vendor/
+/migrations/
 ###< symfony/framework-bundle ###
 
 ###> phpunit/phpunit ###

@@ -5,7 +5,6 @@ namespace App\Command;
 use App\Entity\User;
 use App\Entity\UserRequest;
 use App\Service\UserRequest\UserRequestTypeEnum;
-use App\Utils\File\MimeType;
 use App\Utils\Mailer\Enum\EmailTypeEnum;
 use App\Utils\Mailer\Model\Email;
 use App\Utils\Mailer\Service\MailerService;
@@ -35,7 +34,8 @@ class TestMailerCommand extends Command
     private ?Logger $logger = null;
 
     public function __construct(
-        private readonly MailerService $mailerService
+        private readonly MailerService $mailerService,
+        private readonly string $appName,
     ) {
         parent::__construct();
     }
@@ -172,9 +172,9 @@ HELP
         $resetUrl = 'https://example.com/reset-password?token=' . $userRequest->getToken();
 
         $email = match ($type) {
-            'confirmation' => (new Email(EmailTypeEnum::AUTH_CONFIRMATION, 'Confirmez votre compte ' . APP_NAME))
-                ->from(DEFAULT_EMAIL_SENDER, APP_NAME)
-                ->to($user->getEmail(), trim($user->getFirstname() . ' ' . $user->getLastname()))
+            'confirmation' => (new Email(EmailTypeEnum::AUTH_CONFIRMATION, 'Confirmez votre compte ' . $this->appName))
+                ->from(DEFAULT_EMAIL_SENDER, $this->appName)
+                ->to($user->getEmail(), trim($user->getUsername()))
                 ->setContext([
                     'user' => $user,
                     'confirmationUrl' => $confirmationUrl,
@@ -182,8 +182,8 @@ HELP
                 ]),
 
             'password_reset' => (new Email(EmailTypeEnum::AUTH_RESET_PASSWORD, 'Réinitialisation de votre mot de passe'))
-                ->from(DEFAULT_EMAIL_SENDER, APP_NAME)
-                ->to($user->getEmail(), trim($user->getFirstname() . ' ' . $user->getLastname()))
+                ->from(DEFAULT_EMAIL_SENDER, $this->appName)
+                ->to($user->getEmail(), trim($user->getUsername()))
                 ->setContext([
                     'user' => $user,
                     'reset_link' => $resetUrl,
@@ -204,18 +204,16 @@ HELP
 
         $firstNames = ['Jean', 'Marie', 'Pierre', 'Sophie', 'Thomas', 'Camille', 'Lucas', 'Emma', 'Hugo', 'Léa'];
         $lastNames = ['Dupont', 'Martin', 'Bernard', 'Petit', 'Durand', 'Leroy', 'Moreau', 'Simon', 'Laurent', 'Michel'];
-
-        $firstName = $firstNames[array_rand($firstNames)];
         $lastName = $lastNames[array_rand($lastNames)];
-        $username = strtolower($firstName . '.' . $lastName . $counter);
+        $firstName = $firstNames[array_rand($firstNames)];
+
+        $username = strtolower(substr($firstName, 0, 1) . $lastName . $counter);
 
         $user = new User();
-        $user->setFirstname($firstName);
-        $user->setLastname($lastName);
         $user->setUsername($username);
         $user->setEmail($email);
         $user->setCreatedAt(new \DateTimeImmutable());
-        $user->setIsEmailVerified(false);
+        $user->setIsVerified(false);
         $user->setRoles(['ROLE_USER']);
 
         return $user;
@@ -226,7 +224,7 @@ HELP
         $token = bin2hex(random_bytes(20)); // 40 caractères
 
         $userRequest = new UserRequest();
-        $userRequest->setType(UserRequestTypeEnum::AUTH_ACCOUNT_VERIFICATION->value);
+        $userRequest->setType(UserRequestTypeEnum::AUTH_ACCOUNT_VERIFICATION);
         $userRequest->setToken($token);
         $userRequest->setCreatedAt(new \DateTimeImmutable());
         $userRequest->setExpiresAt(new \DateTimeImmutable('+24 hours'));
