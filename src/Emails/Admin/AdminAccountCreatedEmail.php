@@ -24,7 +24,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class AdminAccountCreatedEmail extends AbstractEmail
 {
     private const SUBJECT = 'Votre compte administrateur a été créé';
-    private const TEMPLATE = 'emails/admin/account_created.html.twig';
+    private const TEMPLATE = 'emails/admin/account-created.html.twig';
 
     public function __construct(
         private readonly MailerService $mailerService,

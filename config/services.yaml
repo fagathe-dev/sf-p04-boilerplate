@@ -28,6 +28,9 @@ services:
     App\Twig\:
         tags: ['twig.extension']
         resource: '../src/Twig/'
+    
+    Fagathe\CorePhp\:
+        resource: '../vendor/fagathe-dev/core-php/src/'
 
     Fagathe\CorePhp\Twig\:
         tags: ['twig.extension']

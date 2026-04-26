@@ -25,7 +25,8 @@ final class AccountConfirmationEmail extends AbstractEmail
 
     public function __construct(
         private readonly MailerService $mailerService,
-        private readonly UrlGeneratorInterface $urlGenerator
+        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly string $appName,
     ) {
         parent::__construct(EmailTypeEnum::AUTH_CONFIRMATION);
     }
@@ -54,11 +55,12 @@ final class AccountConfirmationEmail extends AbstractEmail
             );
 
             // Configuration du destinataire
+            $fullName = trim(($user->getUsername() ?? ''));
             $recipientName = !empty($fullName) ? $fullName : $user->getUsername();
             $this->to($user->getEmail(), $recipientName);
 
             // Configuration de l'expéditeur (optionnel, utilise le défaut si non défini)
-            $this->from(DEFAULT_EMAIL_SENDER, APP_NAME);
+            $this->from(DEFAULT_EMAIL_SENDER, $this->appName);
 
             // Définition du contexte pour le template
             $this->setContext([
