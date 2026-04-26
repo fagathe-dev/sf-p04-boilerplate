@@ -28,16 +28,17 @@
     content: 'Cet email contient votre <strong>mot de passe en clair</strong>. Pour des raisons de sécurité, vous devez :<br><br>
     <strong>1.</strong> Vous connecter immédiatement<br>
     <strong>2.</strong> Changer votre mot de passe<br>
-    <strong>3.</strong> <span style="font-weight: bold;">SUPPRIMER DÉFINITIVEMENT cet email</span> (pas dans la corbeille !)'
+    <strong>3.</strong> <span style="color: #dc3545; font-weight: bold;">SUPPRIMER DÉFINITIVEMENT cet email</span> (pas dans la corbeille !)'
   } %}
 
   {% include 'emails/components/_divider.html.twig' %}
 
   {# Titre principal #}
   {% include 'emails/components/_text.html.twig' with {
-    level: 'h2',
+    level: 'h1',
     content: 'Bienvenue dans l\'équipe ' ~ app_name ~ ' !',
     color: '#212529',
+    margin: '0 0 20px 0'
   } %}
 
   {# Texte d'introduction #}
@@ -59,7 +60,8 @@
   {% include 'emails/components/_text.html.twig' with {
     level: 'h3',
     content: '🔐 Vos identifiants de connexion',
-    color: '#212529'
+    color: '#212529',
+    custom_style: 'margin-bottom: 15px;'
   } %}
 
   {% include 'emails/components/_card.html.twig' with {
@@ -101,28 +103,29 @@
   {% include 'emails/components/_text.html.twig' with {
     level: 'p',
     content: 'Connectez-vous dès maintenant pour accéder à votre espace d\'administration :',
-    color: '#495057'
+    color: '#495057',
+    custom_style: 'margin-bottom: 5px;'
   } %}
 
   {% include 'emails/components/_button.html.twig' with {
     url: loginUrl,
     label: 'Se connecter',
     background: '#0d6efd',
-    custom_style: 'margin: 10px auto;'
+    custom_style: 'margin-bottom: 10px;'
   } %}
 
   {% include 'emails/components/_text.html.twig' with {
     level: 'p',
     content: 'Une fois connecté, rendez-vous dans votre profil pour modifier votre mot de passe :',
     color: '#495057',
-    custom_style: 'margin: 10px auto;'
+    margin: '25px 0 10px 0',
+    custom_style: 'margin-bottom: 5px;'
   } %}
 
   {% include 'emails/components/_button.html.twig' with {
     url: changePasswordUrl,
     label: 'Modifier mon mot de passe',
     background: '#198754',
-    custom_style: 'margin: 10px auto;'
   } %}
 
   {% include 'emails/components/_divider.html.twig' %}
@@ -135,9 +138,9 @@
       <li style="margin-bottom: 8px;">Ne partagez <strong>jamais</strong> vos identifiants avec quiconque</li>
       <li style="margin-bottom: 8px;">Changez votre mot de passe dès votre première connexion</li>
       <li style="margin-bottom: 8px;">Utilisez un mot de passe fort (min. 12 caractères, majuscules, chiffres, symboles)</li>
-      <li style="margin-bottom: 8px;"><strong>Supprimez définitivement cet email après avoir noté vos identifiants</strong></li>
-      </ul>',
-      custom_style: 'margin-bottom: 10px;'
+      <li style="margin-bottom: 8px;"><strong style="color: #dc3545;">Supprimez définitivement cet email après avoir noté vos identifiants</strong></li>
+    </ul>',
+    custom_style: 'margin-bottom: 10px;'
   } %}
 
   {% include 'emails/components/_box.html.twig' with {
@@ -157,8 +160,7 @@
     level: 'p',
     content: 'Si vous n\'êtes pas à l\'origine de cette demande ou si vous pensez avoir reçu cet email par erreur, veuillez contacter immédiatement l\'équipe technique.',
     color: '#6c757d',
-    size: '13px',
-    custom_style: 'margin: 0 0 20px 0;'
+    size: '13px'
   } %}
 
   {% include 'emails/components/_text.html.twig' with {

@@ -9,10 +9,15 @@ use Fagathe\CorePhp\Breadcrumb\BreadcrumbItem;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * Contrôleur de visualisation des logs.
+ * 
+ * Permet de visualiser les fichiers de log organisés par date et chemin, avec une navigation hiérarchique.
+ * 
+ * ⚠️ Réservé à l'environnement de développement (accès restreint ROLE_ADMIN).
+ */
 #[Route('/admin/log', name: 'admin_log_')]
-// #[IsGranted('ROLE_ADMIN')] // Sécurisation globale du controller
 final class LogController extends AbstractController
 {
     public function __construct(

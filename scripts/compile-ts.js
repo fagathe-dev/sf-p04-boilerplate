@@ -1,55 +1,49 @@
-const sass = require('sass');
+const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 
 const args = process.argv.slice(2);
-const isBuild = args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
-const isWatch = args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'dev';
+const isBuild =
+  args.includes('--mode') && args[args.indexOf('--mode') + 1] === 'build';
+const isWatch = args.includes('--watch');
 
-const entryPoint = 'assets/scss/custom.scss';
-const outdir = 'public/css';
-const outfile = 'custom.css';
+const srcDir = 'assets/ts';
+const entryPoints = fs
+  .readdirSync(srcDir, { recursive: true })
+  .filter((f) => f.endsWith('.ts'))
+  .map((f) => path.join(srcDir, f));
+const outdir = 'public/js';
 
-// Fonction de compilation isolée
-function compileSass() {
+if (!fs.existsSync(outdir)) fs.mkdirSync(outdir, { recursive: true });
+
+const buildOptions = {
+  entryPoints,
+  bundle: true,
+  outdir,
+  sourcemap: false,
+  minify: isBuild,
+  target: 'es2020',
+  format: 'esm',
+  tsconfig: 'tsconfig.json',
+};
+
+async function build() {
   try {
-    // 1. Sécurité : on s'assure que le dossier existe À CHAQUE compilation
-    if (!fs.existsSync(outdir)) {
-      fs.mkdirSync(outdir, { recursive: true });
+    if (isWatch) {
+      const ctx = await esbuild.context(buildOptions);
+      await ctx.watch();
+      const time = new Date().toLocaleTimeString();
+      console.log(`[${time}] ✅ TS compiled to ${outdir}/`);
+      console.log('👀 Watching TS files for changes...');
+    } else {
+      await esbuild.build(buildOptions);
+      const time = new Date().toLocaleTimeString();
+      console.log(`[${time}] ✅ TS compiled to ${outdir}/`);
     }
-
-    // 2. Compilation
-    const result = sass.compile(entryPoint, { 
-      style: isBuild ? 'compressed' : 'expanded' 
-    });
-
-    // 3. Écriture
-    fs.writeFileSync(path.join(outdir, outfile), result.css);
-    
-    const time = new Date().toLocaleTimeString();
-    console.log(`[${time}] ✅ SCSS compiled to ${outdir}/${outfile}`);
-    
   } catch (error) {
-    // 4. On avertit sans crasher le watcher (pratique pour les erreurs de syntaxe SCSS)
-    const time = new Date().toLocaleTimeString();
-    console.warn(`[${time}] ⚠️ SCSS compilation issue: ${error.message}`);
+    console.error('❌ TS compilation failed:', error.message);
+    process.exit(1);
   }
 }
 
-// Premier lancement
-compileSass();
-
-// Mode Watch
-if (isWatch) {
-  console.log('👀 Watching SCSS files for changes...');
-  let timeout;
-  
-  fs.watch('assets/scss', { recursive: true }, (eventType, filename) => {
-    if (filename && filename.endsWith('.scss')) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        compileSass();
-      }, 100);
-    }
-  });
-}
+build();

@@ -6,10 +6,9 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         # used to reload user from session & other features (e.g. switch_user)
-        app_user_provider:
-            entity:
-                class: App\Entity\User
-                property: email
+        auth_user_provider:
+            id: App\Security\CustomUserProvider
+
 
     firewalls:
         dev:
@@ -18,18 +17,35 @@ security:
             security: false
         main:
             lazy: true
-            provider: app_user_provider
+            provider: auth_user_provider
+            custom_authenticator: App\Security\Authenticator\FormLoginAuthenticator
+            user_checker: App\Security\CustomUserChecker
+            logout:
+                path: auth_logout
+                # where to redirect after logout
+                # target: app_any_route
+
+            remember_me:
+                secret:   '%kernel.secret%' # Requis
+                lifetime: 15552000 # Durée de vie en secondes (ici 180 jours)
+                path: /
+                always_remember_me: true
 
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
 
             # https://symfony.com/doc/current/security/impersonating_user.html
             # switch_user: true
+    role_hierarchy:
+        ROLE_ADMIN:      [ROLE_USER]
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/auth/profile, roles: ROLE_USER }
+        - { path: ^/auth, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/app, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/, roles: PUBLIC_ACCESS }
 
 when@test:
     security:
