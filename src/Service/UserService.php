@@ -289,7 +289,7 @@ final class UserService
      * 
      * @return PaginationInterface Objet de pagination
      */
-    public function getPaginatedUsers(int $page = 1, int $limit = 20, string $orderBy = 'createdAt', string $order = 'DESC'): PaginationInterface
+    public function getPaginatedUsers(int $page = 1, int $limit = 20, string $orderBy = 'created_at', string $order = 'DESC'): PaginationInterface
     {
         // Création du QueryBuilder pour les utilisateurs
         $queryBuilder = $this->repository->createQueryBuilder('u')
@@ -299,7 +299,7 @@ final class UserService
         $options = [
             'defaultSortFieldName' => "u.{$orderBy}",
             'defaultSortDirection' => $order,
-            'sortFieldWhitelist' => ['u.username', 'u.email', 'u.createdAt', 'u.updatedAt'],
+            'sortFieldWhitelist' => ['u.username', 'u.email', 'u.created_at', 'u.updated_at'],
             'filterFieldWhitelist' => ['u.username', 'u.email']
         ];
 
@@ -414,7 +414,7 @@ final class UserService
     {
         // Implémentation spécifique pour UserService
         return new Breadcrumb([
-            new BreadcrumbItem(name: 'Gestion des utilisateurs', link: $this->urlGenerator->generate('dashboard_user_manage')),
+            new BreadcrumbItem(name: 'Gestion des utilisateurs', link: $this->urlGenerator->generate('admin_user_index')),
             ...$items
         ]);
     }
