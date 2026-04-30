@@ -21,7 +21,8 @@
     <div class="main-content">
       <div class="page-content">
         <div class="container-fluid">
-        {% include 'fragments/_breadcrumb.html.twig' with {pagetitle: 'Pages', title: 'Starter'} %}
+          {% include 'fragments/_breadcrumb.html.twig' with {pagetitle: 'Pages', title: 'Starter'} %}
+          {% include 'fragments/_flash_messages.html.twig' %}
           {% block content %}{% endblock %}
           {% include 'fragments/_top_button.html.twig' %}
         </div>

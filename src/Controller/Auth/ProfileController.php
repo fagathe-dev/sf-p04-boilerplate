@@ -1,13 +1,91 @@
 <?php
 namespace App\Controller\Auth;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
+use App\Entity\User;
+use App\Enum\UserPreference\ThemePreferenceEnum;
+use App\Form\Auth\Profile\ChangeEmailType;
+use App\Form\Auth\Profile\ChangePasswordType;
+use App\Form\Auth\Profile\ProfileInfoType;
+use App\Service\UserService;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/auth/profile', name: 'auth_profile_')]
 final class ProfileController extends AbstractController
 {
+
+    public function __construct(private readonly UserService $userService)
+    {
+    }
+
+    #[Route(path: '', name: 'index', methods: ['GET', 'POST'])]
+    public function index(Request $request): Response
+    {
+        $user = $this->getUser() ?? new User;
+        $infoForm = $this->createForm(ProfileInfoType::class, $user);
+        $infoForm->handleRequest($request);
+
+        $themePreferences = ThemePreferenceEnum::choices();
+
+        if ($infoForm->isSubmitted() && $infoForm->isValid()) {
+            // Handle form submission, e.g., save the user data
+            $boolUpdated = $this->userService->saveUser($user);
+            if ($boolUpdated) {
+                $this->addFlash('success', 'Votre profil a été mis à jour avec succès.');
+            } else {
+                $this->addFlash('error', 'Une erreur est survenue lors de la mise à jour de votre profil.');
+            }
+
+            return $this->redirectToRoute('auth_profile_index', ['t' => 'informations']);
+        }
+
+        $emailForm = $this->createForm(ChangeEmailType::class);
+        $emailForm->handleRequest($request);
+
+        if ($emailForm->isSubmitted() && $emailForm->isValid()) {
+            // Handle email change logic here
+            $this->addFlash('success', 'Votre adresse e-mail a été mise à jour avec succès.');
+
+            return $this->redirectToRoute('auth_profile_index', ['t' => 'settings']);
+        }
+
+        $passwordForm = $this->createForm(ChangePasswordType::class);
+        $passwordForm->handleRequest($request);
+
+        if ($passwordForm->isSubmitted() && $passwordForm->isValid()) {
+            // Handle password change logic here
+            $this->addFlash('success', 'Votre mot de passe a été mis à jour avec succès.');
+
+            return $this->redirectToRoute('auth_profile_index', ['t' => 'settings']);
+        }
+
+        return $this->render('auth/profile/index.html.twig', compact('infoForm', 'emailForm', 'passwordForm', 'user', 'themePreferences'));
+    }
+
+    #[Route(path: '/update', name: 'update', methods: ['POST'])]
+    public function update(Request $request): JsonResponse
+    {
+        return $this->json([
+            'message' => 'Profile mis à jour avec succès',
+        ]);
+    }
+
+    #[Route(path: '/upload/avatar', name: 'upload_avatar', methods: ['POST'])]
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        return $this->json([
+            'message' => 'Avatar mis à jour avec succès',
+        ]);
+    }
+
+    #[Route(path: '/delete', name: 'delete', methods: ['POST'])]
+    public function delete(Request $request): RedirectResponse
+    {
+        return $this->redirectToRoute('auth_profile_index', ['t' => 'settings']);
+    }
 
 }
