@@ -18,7 +18,8 @@
     </div>
   </div>
   <form method="post" action="{{ path('auth_profile_delete') }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');">
-    <input type="hidden" name="_method" value="DELETE">
+    {# Ajout du token CSRF vital pour la sécurité #}
+    <input type="hidden" name="_token" value="{{ csrf_token('delete_account' ~ app.user.id) }}">
     <button type="submit" class="btn btn-danger">Supprimer mon compte</button>
   </form>
 </div>

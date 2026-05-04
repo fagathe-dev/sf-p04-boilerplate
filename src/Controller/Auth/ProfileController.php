@@ -7,9 +7,11 @@ use App\Form\Auth\Profile\ChangeEmailType;
 use App\Form\Auth\Profile\ChangePasswordType;
 use App\Form\Auth\Profile\ProfileInfoType;
 use App\Service\UserService;
+use Fagathe\CorePhp\Uploader\FileUploadException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -18,8 +20,10 @@ use Symfony\Component\Routing\Attribute\Route;
 final class ProfileController extends AbstractController
 {
 
-    public function __construct(private readonly UserService $userService)
-    {
+    public function __construct(
+        private readonly UserService $userService,
+        private readonly Security $security,
+    ) {
     }
 
     #[Route(path: '', name: 'index', methods: ['GET', 'POST'])]
@@ -77,14 +81,54 @@ final class ProfileController extends AbstractController
     #[Route(path: '/upload/avatar', name: 'upload_avatar', methods: ['POST'])]
     public function uploadAvatar(Request $request): JsonResponse
     {
-        return $this->json([
-            'message' => 'Avatar mis à jour avec succès',
-        ]);
+        $file = $request->files->get('avatar');
+
+        if (!$file instanceof UploadedFile) {
+            return $this->json(['error' => 'Aucun fichier reçu.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        try {
+            $result = $this->userService->updateAvatar($this->getUser(), $file);
+
+            return $this->json([
+                'message' => 'Avatar mis à jour avec succès.',
+                'url' => $result->relativePath,
+            ]);
+        } catch (FileUploadException $e) {
+            return $this->json(['error' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
     }
 
     #[Route(path: '/delete', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request): RedirectResponse
+    public function delete(Request $request): Response
     {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        // 1. Vérification de sécurité (CSRF)
+        $csrfToken = $request->request->getString('_token');
+        if (!$this->isCsrfTokenValid('delete_account' . $user->getId(), $csrfToken)) {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('auth_profile_index', ['t' => 'settings']);
+        }
+
+        // 2. Suppression de l'utilisateur via le service (qui gère aussi l'avatar)
+        $isDeleted = $this->userService->deleteUser($user->getId());
+
+        if ($isDeleted) {
+            // 3. Déconnexion de l'utilisateur
+            // Le paramètre "false" empêche de jeter une exception si on n'est pas derrière un pare-feu
+            $this->security->logout(false);
+
+            // Invalidation de la session pour nettoyer les traces
+            $request->getSession()->invalidate();
+
+            // Redirection vers l'accueil ou la page de connexion
+            return $this->redirectToRoute('auth_login'); // Ou 'app_home' selon tes routes
+        }
+
+        // Cas d'erreur (rare si l'utilisateur est bien connecté)
+        $this->addFlash('error', 'Une erreur est survenue lors de la suppression du compte.');
         return $this->redirectToRoute('auth_profile_index', ['t' => 'settings']);
     }
 

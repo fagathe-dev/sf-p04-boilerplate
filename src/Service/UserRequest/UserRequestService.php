@@ -6,6 +6,7 @@ use App\Emails\Auth\ResetPasswordEmail;
 use App\Entity\UserRequest;
 use App\Repository\UserRepository;
 use App\Repository\UserRequestRepository;
+use App\Security\Authenticator\FormLoginAuthenticator;
 use Doctrine\ORM\EntityManagerInterface;
 use Fagathe\CorePhp\Enum\LoggerLevelEnum;
 use Fagathe\CorePhp\Generator\TokenGenerator;
@@ -200,6 +201,9 @@ final class UserRequestService
             $user
                 ->setIsVerified(true)
                 ->setUpdatedAt($now);
+
+            // Connexion automatique de l'utilisateur après confirmation
+            $this->security->login($user, FormLoginAuthenticator::class, 'main'); // 'main' correspond au nom de ton firewall
 
             // Persister les modifications
             $this->entityManager->flush();

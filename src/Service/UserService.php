@@ -13,6 +13,10 @@ use App\Service\UserRequest\UserRequestTypeEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Fagathe\CorePhp\Breadcrumb\Breadcrumb;
 use Fagathe\CorePhp\Breadcrumb\BreadcrumbItem;
+use Fagathe\CorePhp\Uploader\FileUploadException;
+use Fagathe\CorePhp\Uploader\UploaderService;
+use Fagathe\CorePhp\Uploader\UploaderValidationService;
+use Fagathe\CorePhp\Uploader\UploadResult;
 use Fagathe\CorePhp\Enum\LoggerLevelEnum;
 use Fagathe\CorePhp\Generator\TokenGenerator;
 use Fagathe\CorePhp\Trait\DatetimeTrait;
@@ -22,7 +26,9 @@ use Fagathe\CorePhp\Trait\SessionFlashTrait;
 use Knp\Component\Pager\Pagination\PaginationInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -38,6 +44,8 @@ use Throwable;
  */
 final class UserService
 {
+
+    private readonly Filesystem $filesystem;
 
     use LoggerTrait, DatetimeTrait, SessionFlashTrait, PaginationTrait;
 
@@ -62,8 +70,12 @@ final class UserService
         protected readonly PaginatorInterface $paginator,
         private readonly AccountConfirmationEmail $accountConfirmationEmail,
         private readonly AdminAccountCreatedEmail $adminAccountCreatedEmail,
-        private readonly UserRequestService $userRequestService
+        private readonly UserRequestService $userRequestService,
+        private readonly UploaderService $uploaderService,
+        private readonly UploaderValidationService $uploaderValidationService,
+        private readonly string $projectDir,
     ) {
+        $this->filesystem = new Filesystem;
     }
 
     /**
@@ -376,6 +388,7 @@ final class UserService
 
         try {
             $this->repository->remove($user, true);
+            $this->deleteAvatar($user);
 
             $this->generateLog(
                 LoggerLevelEnum::Info,
@@ -428,5 +441,40 @@ final class UserService
         }
 
         return null;
+    }
+
+    public function updateAvatar(User $user, UploadedFile $file): UploadResult
+    {
+        $this->uploaderValidationService
+            ->setAllowedMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->setMaxSize(15 * 1024 * 1024); // 15MB
+
+        $validation = $this->uploaderValidationService->validate($file);
+
+        if ($validation !== true) {
+            throw new FileUploadException(implode(' ', (array) $validation));
+        }
+
+        $result = $this->uploaderService
+            ->setUploadDirectory('avatars')
+            ->upload($file, $user->getAvatar());
+
+        $user->setAvatar($result->relativePath);
+        $this->entityManager->flush();
+
+        return $result;
+    }
+
+    private function deleteAvatar(?User $user = null): void
+    {
+        $user = $user ?? $this->getCurrentUser();
+        if ($user instanceof User) {
+            if ($user->getAvatar()) {
+                $avatarPath = $this->projectDir . '/' . PUBLIC_DIR . '/' . $user->getAvatar();
+                if ($this->filesystem->exists($avatarPath)) {
+                    $this->filesystem->remove($avatarPath);
+                }
+            }
+        }
     }
 }
