@@ -237,6 +237,60 @@ final class UserRequestService
         }
     }
 
+    public function confirmEmailChange(string $token): ?\App\Entity\User
+    {
+        $userRequest = $this->repository->findOneBy(compact('token'));
+
+        if ($userRequest === null) {
+            return null;
+        }
+
+        $validationResult = $this->validate($userRequest, UserRequestTypeEnum::AUTH_PROFILE_CHANGE_EMAIL);
+
+        if (!$validationResult->isValid()) {
+            $this->addFlash('danger', $validationResult->getMessage());
+            return null;
+        }
+
+        try {
+            $now = $this->now();
+            $user = $userRequest->getUser();
+            $content = $userRequest->getContent();
+
+            // Vérification de la présence du JSON
+            if (!isset($content['new_email'])) {
+                return null;
+            }
+
+            // Mettre à jour l'utilisateur
+            $user->setEmail($content['new_email'])
+                ->setUpdatedAt($now);
+
+            // Mettre à jour la requête
+            $userRequest->setIsUsed(true)
+                ->setUpdatedAt($now);
+
+            $this->entityManager->flush();
+
+            $this->generateLog(LoggerLevelEnum::Info, [
+                'message' => 'E-mail modifié avec succès via token',
+                'user_id' => $user->getId(),
+                'new_email' => $content['new_email']
+            ], ['action' => 'user_request.change_email.success']);
+
+            return $user;
+
+        } catch (\Throwable $e) {
+            $this->generateLog(LoggerLevelEnum::Critical, [
+                'message' => 'Erreur lors de la validation du nouvel e-mail',
+                'token' => $token,
+                'error' => $e->getMessage()
+            ], ['action' => 'user_request.change_email.error']);
+
+            return null;
+        }
+    }
+
     /**
      * Trouve une demande par son token.
      * 

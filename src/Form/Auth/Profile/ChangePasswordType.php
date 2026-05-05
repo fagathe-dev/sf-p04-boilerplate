@@ -8,6 +8,7 @@ use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Security\Core\Validator\Constraints\UserPassword;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Regex;
 
@@ -18,11 +19,14 @@ final class ChangePasswordType extends AbstractType
         $builder
             ->add('current_password', PasswordType::class, [
                 'label' => 'Mot de passe actuel',
+                'mapped' => false, // 👈 Très important : on ne lie pas ce champ à l'entité
                 'row_attr' => [
                     'class' => 'form-group',
                 ],
                 'constraints' => [
                     new NotBlank(message: 'Veuillez saisir votre mot de passe actuel !'),
+                    // 🔥 La magie Symfony opère ici :
+                    new UserPassword(message: 'Le mot de passe actuel est incorrect.'), 
                 ],
             ])
             ->add('new_password', RepeatedType::class, [

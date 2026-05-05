@@ -41,6 +41,18 @@ final class EmailMockFactory
                     'expires_in' => '1 heure',
                     ...compact('preview'),
                 ]),
+                
+            EmailTypeEnum::AUTH_PROFILE_CHANGE_EMAIL =>
+            (new Email($type, 'Validation de votre nouvelle adresse e-mail'))
+                ->from('no-reply@example.com', 'My App')
+                ->to('nouvel-email@example.com', 'John Doe')
+                ->setContext([
+                    'user' => $mockUser,
+                    'new_email' => 'nouvel-email@example.com',
+                    'confirmationUrl' => 'https://example.com/auth/profile/confirm-email/abc123token',
+                    'expires_in' => '24 heures',
+                    ...compact('preview'),
+                ]),
 
             EmailTypeEnum::ADMIN_ACCOUNT_CREATED =>
             (new Email($type, 'Bienvenue - Votre compte a été créé'))

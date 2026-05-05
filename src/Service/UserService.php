@@ -4,9 +4,11 @@ namespace App\Service;
 
 use App\Emails\Admin\AdminAccountCreatedEmail;
 use App\Emails\Auth\AccountConfirmationEmail;
+use App\Emails\Auth\ProfileChangeEmailEmail;
 use App\Entity\User;
 use App\Entity\UserRequest;
 use App\Repository\UserRepository;
+use App\Security\Authenticator\FormLoginAuthenticator;
 use App\Security\Enum\RoleEnum;
 use App\Service\UserRequest\UserRequestService;
 use App\Service\UserRequest\UserRequestTypeEnum;
@@ -67,12 +69,13 @@ final class UserService
         private readonly EntityManagerInterface $entityManager,
         private readonly SerializerInterface $serializer,
         private readonly UrlGeneratorInterface $urlGenerator,
-        protected readonly PaginatorInterface $paginator,
+        private readonly PaginatorInterface $paginator,
         private readonly AccountConfirmationEmail $accountConfirmationEmail,
         private readonly AdminAccountCreatedEmail $adminAccountCreatedEmail,
         private readonly UserRequestService $userRequestService,
         private readonly UploaderService $uploaderService,
         private readonly UploaderValidationService $uploaderValidationService,
+        private readonly ProfileChangeEmailEmail $profileChangeEmailEmail, // 👈 Ajout
         private readonly string $projectDir,
     ) {
         $this->filesystem = new Filesystem;
@@ -476,5 +479,58 @@ final class UserService
                 }
             }
         }
+    }
+
+    // 2. Ajoute la méthode de traitement de la demande :
+    public function requestEmailChange(User $user, string $newEmail): bool
+    {
+        try {
+            // Création de la demande
+            $userRequest = $this->userRequestService->createUserRequest(UserRequestTypeEnum::AUTH_PROFILE_CHANGE_EMAIL);
+
+            // 🔥 On stocke le nouvel email dans le JSON
+            $userRequest->setContent(['new_email' => $newEmail]);
+
+            $user->addUserRequest($userRequest);
+
+            // Sauvegarde en BDD
+            $this->saveUser($user, false);
+
+            // Envoi du mail
+            $emailSent = $this->profileChangeEmailEmail->send($userRequest);
+
+            if ($emailSent) {
+                $this->generateLog(LoggerLevelEnum::Info, [
+                    'message' => 'Demande de changement d\'e-mail initiée',
+                    'user_id' => $user->getId(),
+                    'new_email' => $newEmail
+                ], ['action' => 'user.change_email.request_sent']);
+                return true;
+            }
+
+            return false;
+        } catch (Throwable $th) {
+            $this->generateLog(LoggerLevelEnum::Error, [
+                'message' => 'Erreur lors de la demande de changement d\'e-mail',
+                'user_id' => $user->getId(),
+                'error' => $th->getMessage()
+            ], ['action' => 'user.change_email.request_error']);
+            return false;
+        }
+    }
+
+    /**
+     * Rafraîchit la session de l'utilisateur pour éviter une déconnexion
+     * après un changement d'identifiant (email) ou de mot de passe.
+     * * @param User $user L'utilisateur dont on veut maintenir la session
+     */
+    public function refreshSession(User $user): void
+    {
+        $this->security->login($user, FormLoginAuthenticator::class, 'main');
+
+        $this->generateLog(LoggerLevelEnum::Info, [
+            'message' => 'Session rafraîchie automatiquement',
+            'user_id' => $user->getId(),
+        ], ['action' => 'user.session.refreshed']);
     }
 }
