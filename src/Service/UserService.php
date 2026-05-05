@@ -69,7 +69,7 @@ final class UserService
         private readonly EntityManagerInterface $entityManager,
         private readonly SerializerInterface $serializer,
         private readonly UrlGeneratorInterface $urlGenerator,
-        private readonly PaginatorInterface $paginator,
+        protected readonly PaginatorInterface $paginator,
         private readonly AccountConfirmationEmail $accountConfirmationEmail,
         private readonly AdminAccountCreatedEmail $adminAccountCreatedEmail,
         private readonly UserRequestService $userRequestService,
