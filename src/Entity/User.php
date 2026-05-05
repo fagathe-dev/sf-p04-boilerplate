@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\UserPreference\UserPreferenceKeyEnum;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -61,6 +62,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: UserRequest::class, mappedBy: 'user', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $userRequests;
 
+    #[ORM\Column(nullable: true)]
+    private ?array $preferences = null;
+
     public function __construct()
     {
         $this->userRequests = new ArrayCollection();
@@ -92,15 +96,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return (string) $this->username ?? $this->email;
     }
-
     /**
      * @see UserInterface
      */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
     }
@@ -136,7 +137,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __serialize(): array
     {
         $data = (array) $this;
-        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
+        $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
 
         return $data;
     }
@@ -239,6 +240,41 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
                 $userRequest->setUser(null);
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * @param string $key
+     * @param mixed|null $default
+     * 
+     * @return mixed
+     */
+    public function getPreference(string $key, mixed $default = null): mixed
+    {
+        if (UserPreferenceKeyEnum::tryFrom($key) === null) {
+            return $default;
+        }
+
+        return $this->preferences[$key] ?? $default;
+    }
+
+    /**
+     * @return array|null
+     */
+    public function getPreferences(): ?array
+    {
+        return $this->preferences;
+    }
+
+    /**
+     * @param array|null $preferences
+     * 
+     * @return static
+     */
+    public function setPreferences(?array $preferences): static
+    {
+        $this->preferences = $preferences;
 
         return $this;
     }

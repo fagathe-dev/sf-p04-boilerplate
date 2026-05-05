@@ -38,6 +38,9 @@ class UserRequest
     #[ORM\ManyToOne(inversedBy: 'userRequests')]
     private ?User $user = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?array $content = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -135,6 +138,18 @@ class UserRequest
     public function setUser(?User $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getContent(): ?array
+    {
+        return $this->content;
+    }
+
+    public function setContent(?array $content): static
+    {
+        $this->content = $content;
 
         return $this;
     }

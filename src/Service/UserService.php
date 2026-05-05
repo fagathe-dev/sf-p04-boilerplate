@@ -4,15 +4,21 @@ namespace App\Service;
 
 use App\Emails\Admin\AdminAccountCreatedEmail;
 use App\Emails\Auth\AccountConfirmationEmail;
+use App\Emails\Auth\ProfileChangeEmailEmail;
 use App\Entity\User;
 use App\Entity\UserRequest;
 use App\Repository\UserRepository;
+use App\Security\Authenticator\FormLoginAuthenticator;
 use App\Security\Enum\RoleEnum;
 use App\Service\UserRequest\UserRequestService;
 use App\Service\UserRequest\UserRequestTypeEnum;
 use Doctrine\ORM\EntityManagerInterface;
 use Fagathe\CorePhp\Breadcrumb\Breadcrumb;
 use Fagathe\CorePhp\Breadcrumb\BreadcrumbItem;
+use Fagathe\CorePhp\Uploader\FileUploadException;
+use Fagathe\CorePhp\Uploader\UploaderService;
+use Fagathe\CorePhp\Uploader\UploaderValidationService;
+use Fagathe\CorePhp\Uploader\UploadResult;
 use Fagathe\CorePhp\Enum\LoggerLevelEnum;
 use Fagathe\CorePhp\Generator\TokenGenerator;
 use Fagathe\CorePhp\Trait\DatetimeTrait;
@@ -22,7 +28,9 @@ use Fagathe\CorePhp\Trait\SessionFlashTrait;
 use Knp\Component\Pager\Pagination\PaginationInterface;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -38,6 +46,8 @@ use Throwable;
  */
 final class UserService
 {
+
+    private readonly Filesystem $filesystem;
 
     use LoggerTrait, DatetimeTrait, SessionFlashTrait, PaginationTrait;
 
@@ -59,11 +69,16 @@ final class UserService
         private readonly EntityManagerInterface $entityManager,
         private readonly SerializerInterface $serializer,
         private readonly UrlGeneratorInterface $urlGenerator,
-        protected readonly PaginatorInterface $paginator,
+        private readonly PaginatorInterface $paginator,
         private readonly AccountConfirmationEmail $accountConfirmationEmail,
         private readonly AdminAccountCreatedEmail $adminAccountCreatedEmail,
-        private readonly UserRequestService $userRequestService
+        private readonly UserRequestService $userRequestService,
+        private readonly UploaderService $uploaderService,
+        private readonly UploaderValidationService $uploaderValidationService,
+        private readonly ProfileChangeEmailEmail $profileChangeEmailEmail, // 👈 Ajout
+        private readonly string $projectDir,
     ) {
+        $this->filesystem = new Filesystem;
     }
 
     /**
@@ -376,6 +391,7 @@ final class UserService
 
         try {
             $this->repository->remove($user, true);
+            $this->deleteAvatar($user);
 
             $this->generateLog(
                 LoggerLevelEnum::Info,
@@ -428,5 +444,93 @@ final class UserService
         }
 
         return null;
+    }
+
+    public function updateAvatar(User $user, UploadedFile $file): UploadResult
+    {
+        $this->uploaderValidationService
+            ->setAllowedMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->setMaxSize(15 * 1024 * 1024); // 15MB
+
+        $validation = $this->uploaderValidationService->validate($file);
+
+        if ($validation !== true) {
+            throw new FileUploadException(implode(' ', (array) $validation));
+        }
+
+        $result = $this->uploaderService
+            ->setUploadDirectory('avatars')
+            ->upload($file, $user->getAvatar());
+
+        $user->setAvatar($result->relativePath);
+        $this->entityManager->flush();
+
+        return $result;
+    }
+
+    private function deleteAvatar(?User $user = null): void
+    {
+        $user = $user ?? $this->getCurrentUser();
+        if ($user instanceof User) {
+            if ($user->getAvatar()) {
+                $avatarPath = $this->projectDir . '/' . PUBLIC_DIR . '/' . $user->getAvatar();
+                if ($this->filesystem->exists($avatarPath)) {
+                    $this->filesystem->remove($avatarPath);
+                }
+            }
+        }
+    }
+
+    // 2. Ajoute la méthode de traitement de la demande :
+    public function requestEmailChange(User $user, string $newEmail): bool
+    {
+        try {
+            // Création de la demande
+            $userRequest = $this->userRequestService->createUserRequest(UserRequestTypeEnum::AUTH_PROFILE_CHANGE_EMAIL);
+
+            // 🔥 On stocke le nouvel email dans le JSON
+            $userRequest->setContent(['new_email' => $newEmail]);
+
+            $user->addUserRequest($userRequest);
+
+            // Sauvegarde en BDD
+            $this->saveUser($user, false);
+
+            // Envoi du mail
+            $emailSent = $this->profileChangeEmailEmail->send($userRequest);
+
+            if ($emailSent) {
+                $this->generateLog(LoggerLevelEnum::Info, [
+                    'message' => 'Demande de changement d\'e-mail initiée',
+                    'user_id' => $user->getId(),
+                    'new_email' => $newEmail
+                ], ['action' => 'user.change_email.request_sent']);
+                return true;
+            }
+
+            return false;
+        } catch (Throwable $th) {
+            $this->generateLog(LoggerLevelEnum::Error, [
+                'message' => 'Erreur lors de la demande de changement d\'e-mail',
+                'user_id' => $user->getId(),
+                'error' => $th->getMessage()
+            ], ['action' => 'user.change_email.request_error']);
+            return false;
+        }
+    }
+
+    /**
+     * Rafraîchit la session de l'utilisateur pour éviter une déconnexion
+     * après un changement d'identifiant (email) ou de mot de passe.
+     * * @param User $user L'utilisateur dont on veut maintenir la session
+     */
+    public function refreshSession(User $user): void
+    {
+        $this->security->login($user, FormLoginAuthenticator::class, 'main');
+
+        $this->generateLog(LoggerLevelEnum::Info, [
+            'message' => 'Session rafraîchie automatiquement',
+            'user_id' => $user->getId(),
+        ], ['action' => 'user.session.refreshed']);
     }
 }

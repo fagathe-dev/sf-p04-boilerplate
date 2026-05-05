@@ -2,6 +2,7 @@
 namespace App\Controller\Auth;
 
 use App\Form\Auth\LoginFormType;
+use App\Service\UserRequest\UserRequestService;
 use Fagathe\CorePhp\Logger\Logger;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -16,7 +17,8 @@ final class LoginController extends AbstractController
     private Logger $logger;
 
     public function __construct(
-        private readonly Security $security
+        private readonly Security $security,
+        private readonly UserRequestService $userRequestService
     ) {
         // Créer une instance du Logger spécifique pour ce contrôleur
         $this->logger = new Logger('security/login/attempts-login', $security, true);
