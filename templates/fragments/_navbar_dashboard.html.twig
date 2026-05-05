@@ -23,7 +23,7 @@
           <button type="button" class="btn shadow-none" id="page-header-user-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             <span class="d-flex align-items-center">
             {% if app.user.avatar %}
-              <img class="rounded-circle header-profile-user" src="{{ app.user.avatar }}" alt="Header Avatar">
+              <img class="rounded-circle header-profile-user" src="{{ asset(app.user.avatar) }}" alt="Header Avatar">
             {% else %}
               <div class="avatar-xs shadow rounded-circle">
                 <div class="avatar-title rounded-circle bg-primary-subtle text-primary fs-16">{{ app.user.username|first|upper }}</div>
